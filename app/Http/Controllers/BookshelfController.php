@@ -1,0 +1,146 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Book;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Carbon;
+
+class BookshelfController extends Controller
+{
+    public function index(Request $request)
+    {
+        $query = Book::query();
+
+        // Filtra per categoria
+        if ($request->has('categorie')) {
+            $query->where('categorie_id', $request->categorie);
+        }
+
+        // Filtra per age_rating
+        if (Auth::check() && Auth::user()->birth_date) {
+            $userBirthDate = Auth::user()->birth_date;
+            $userAge = Carbon::parse($userBirthDate)->age;
+            $query->where('age_rating', '<=', $userAge);
+        }
+
+        // Paginació
+        $perPage = (Auth::check() && Auth::user()->email === 'admin@admin.es') ? 4 : 4;
+        $books = $query->orderBy('title', 'asc')->paginate($perPage);
+
+        return view('bookshelf.index', ['books' => $books]);
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        $book = Book::with('categorie')->findOrFail($id);
+
+        // Comprova l'edat de l'usuari
+        if (Auth::check() && Auth::user()->birth_date) {
+            $userAge = \Carbon\Carbon::parse(Auth::user()->birth_date)->age;
+            if ($book->age_rating > $userAge) {
+                abort(403, 'No tens edat per aquest llibre');
+            }
+        }
+
+        $reviews = $book->reviews()->with('user')->get();
+        $averageRating = $book->reviews()->avg('rating');
+        $userReview = null;
+        if (Auth::check()) {
+            $userReview = $book->reviews()->where('user_id', Auth::id())->first();
+        }
+        return view('bookshelf.show', compact('book', 'reviews', 'averageRating', 'userReview'));
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        // Mostra el formulari per crear un nou llibre
+        return view('bookshelf.create');
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'author' => 'required|string|max:255',
+            'synopsis' => 'required|string',
+            'published_date' => 'required|date',
+            'price' => 'required|numeric|min:0',
+            'age_rating' => 'required|integer|min:0',
+            'categorie_id' => 'required|exists:categories,id',
+            'book_cover' => 'nullable|image|max:2048',
+        ]);
+
+        // Gestió de la pujada de la portada
+        if ($request->hasFile('book_cover')) {
+            $file = $request->file('book_cover');
+            $path = $file->store('book_covers', 'public');
+            $validated['book_cover'] = '/storage/' . $path;
+        }
+
+        Book::create($validated);
+
+        return redirect()->route('bookshelf.index')->with('success', 'Llibre creat !.');
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(string $id)
+    {
+        return view('bookshelf.edit', ['book' => Book::findOrFail($id), 'id' => $id]);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, string $id)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'author' => 'required|string|max:255',
+            'synopsis' => 'required|string',
+            'published_date' => 'required|date',
+            'price' => 'required|numeric|min:0',
+            'age_rating' => 'required|integer|min:0',
+            'categorie_id' => 'required|exists:categories,id',
+            'book_cover' => 'nullable|image|max:2048',
+        ]);
+
+        $book = Book::findOrFail($id);
+
+        // Handle book cover upload if a new file is provided
+        if ($request->hasFile('book_cover')) {
+            $file = $request->file('book_cover');
+            $path = $file->store('book_covers', 'public');
+            $validated['book_cover'] = '/storage/' . $path;
+        } else {
+            // Keep the old cover if no new file is uploaded
+            unset($validated['book_cover']);
+        }
+
+        $book->update($validated);
+
+        return redirect()->route('bookshelf.show', ['id' => $id]);
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(string $id)
+    {
+        $book = Book::findOrFail($id);
+        $book->delete();
+        return redirect()->route('bookshelf.index')->with('success', 'Llibre esborrat i valoracions eliminades.');
+    }
+}
