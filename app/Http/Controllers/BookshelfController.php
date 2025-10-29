@@ -43,7 +43,7 @@ class BookshelfController extends Controller
         if (Auth::check() && Auth::user()->birth_date) {
             $userAge = \Carbon\Carbon::parse(Auth::user()->birth_date)->age;
             if ($book->age_rating > $userAge) {
-                abort(403, 'No tens edat per aquest llibre');
+                abort(403, 'No tens edat suficient per aquest llibre');
             }
         }
 
