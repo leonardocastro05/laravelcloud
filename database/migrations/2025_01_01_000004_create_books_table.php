@@ -22,6 +22,7 @@ return new class extends Migration
             $table->decimal('price', 8, 2);
             $table->string('book_cover');
             $table->integer('age_rating');
+            $table->image('book_cover')->nullable();
 
             $table->foreignId('categorie_id')
                     ->nullable()
