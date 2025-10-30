@@ -8,7 +8,7 @@
     <div class="col-md-4 mb-4">
         <div class="card shadow-sm border-0">
             <div style="width:100%; aspect-ratio:3/4; background:#f7f4ff; display:flex; align-items:center; justify-content:center;">
-                <img src="{{ $book->book_cover }}"
+                <img src="{{ $book->book_cover ? asset('storage/' . $book->book_cover) : asset('images/default-book.png') }}"
                     class="card-img-top rounded-top img-fluid"
                     alt="portada_llibre"
                     style="max-width:100%; max-height:100%; object-fit:contain; background:#f7f4ff;">

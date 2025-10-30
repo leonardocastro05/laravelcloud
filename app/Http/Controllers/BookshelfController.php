@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Book;
+use App\Models\Categorie;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Carbon;
 
 class BookshelfController extends Controller
@@ -41,7 +43,7 @@ class BookshelfController extends Controller
 
         // Comprova l'edat de l'usuari
         if (Auth::check() && Auth::user()->birth_date) {
-            $userAge = \Carbon\Carbon::parse(Auth::user()->birth_date)->age;
+            $userAge = Carbon::parse(Auth::user()->birth_date)->age;
             if ($book->age_rating > $userAge) {
                 abort(403, 'No tens edat suficient per aquest llibre');
             }
@@ -61,8 +63,8 @@ class BookshelfController extends Controller
      */
     public function create()
     {
-        // Mostra el formulari per crear un nou llibre
-        return view('bookshelf.create');
+        $categories = Categorie::all();
+        return view('bookshelf.create', compact('categories'));
     }
 
     /**
@@ -81,11 +83,9 @@ class BookshelfController extends Controller
             'book_cover' => 'nullable|image|max:2048',
         ]);
 
-        // Gestió de la pujada de la portada
+        // Gestió de la pujada de la portada - SENSE /storage/
         if ($request->hasFile('book_cover')) {
-            $file = $request->file('book_cover');
-            $path = $file->store('book_covers', 'public');
-            $validated['book_cover'] = '/storage/' . $path;
+            $validated['book_cover'] = $request->file('book_cover')->store('book_covers', 'public');
         }
 
         Book::create($validated);
@@ -98,7 +98,9 @@ class BookshelfController extends Controller
      */
     public function edit(string $id)
     {
-        return view('bookshelf.edit', ['book' => Book::findOrFail($id), 'id' => $id]);
+        $book = Book::findOrFail($id);
+        $categories = Categorie::all();
+        return view('bookshelf.edit', compact('book', 'categories'));
     }
 
     /**
@@ -121,9 +123,12 @@ class BookshelfController extends Controller
 
         // Handle book cover upload if a new file is provided
         if ($request->hasFile('book_cover')) {
-            $file = $request->file('book_cover');
-            $path = $file->store('book_covers', 'public');
-            $validated['book_cover'] = '/storage/' . $path;
+            // Eliminar imatge anterior si existeix
+            if ($book->book_cover && Storage::disk('public')->exists($book->book_cover)) {
+                Storage::disk('public')->delete($book->book_cover);
+            }
+            // Guardar nova imatge - SENSE /storage/
+            $validated['book_cover'] = $request->file('book_cover')->store('book_covers', 'public');
         } else {
             // Keep the old cover if no new file is uploaded
             unset($validated['book_cover']);
@@ -140,6 +145,12 @@ class BookshelfController extends Controller
     public function destroy(string $id)
     {
         $book = Book::findOrFail($id);
+
+        // Eliminar la imatge si existeix
+        if ($book->book_cover && Storage::disk('public')->exists($book->book_cover)) {
+            Storage::disk('public')->delete($book->book_cover);
+        }
+
         $book->delete();
         return redirect()->route('bookshelf.index')->with('success', 'Llibre esborrat i valoracions eliminades.');
     }

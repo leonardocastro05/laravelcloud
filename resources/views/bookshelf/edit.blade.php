@@ -53,10 +53,10 @@
 
             <div class="mb-3">
                 <label for="book_cover" class="form-label">Portada</label>
-                <input id="book_cover" type="file" class="form-control" name="book_cover">
+                <input id="book_cover" type="file" class="form-control" name="book_cover" accept="image/*">
                 @if($book->book_cover)
                     <div class="mt-2">
-                        <img src="{{ $book->book_cover }}" alt="Current cover" style="max-width: 120px;">
+                        <img src="{{ asset('storage/' . $book->book_cover) }}" alt="Current cover" style="max-width: 120px;">
                     </div>
                 @endif
             </div>

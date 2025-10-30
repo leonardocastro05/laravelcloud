@@ -21,7 +21,7 @@
         <div class="card shadow-sm border-0 w-100 h-100 book-card">
             <a href="{{ url('/bookshelf/show/' . $book->id ) }}" class="text-decoration-none text-dark">
                 <div style="width:100%; aspect-ratio:3/4; display:flex; align-items:center; justify-content:center;">
-                    <img src="{{ $book->book_cover }}"
+                    <img src="{{ $book->book_cover ? asset('storage/' . $book->book_cover) : asset('images/default-book.png') }}"
                         class="card-img-top rounded-top img-fluid"
                         alt="book_cover"
                         style="max-width:100%; max-height:100%; object-fit:contain; background:#f7f4ff;">

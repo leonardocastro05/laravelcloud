@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory; 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use \App\Models\BookUserCreate;
 
 class Book extends Model
 {
-    use HasFactory; 
+    use HasFactory;
 
 
     protected $table = 'books';
@@ -19,19 +19,22 @@ class Book extends Model
         'synopsis',
         'published_date',
         'price',
-        'book_cover',
         'age_rating',
-        'categorie_id'
+        'categorie_id',
+        'book_cover', // <-- Assegura't que estigui aquí
     ];
 
-    public function categorie() {
+    public function categorie()
+    {
         return $this->belongsTo(Categorie::class);
     }
 
-    public function users() {
+    public function users()
+    {
         return $this->belongsToMany(User::class)->withPivot('nota', 'valoració');
     }
-    public function reviews() {
+    public function reviews()
+    {
         return $this->hasMany(BookUserCreate::class, 'book_id');
     }
 }
